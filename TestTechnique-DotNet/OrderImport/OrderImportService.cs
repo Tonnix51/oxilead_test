@@ -1,55 +1,78 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
-
 namespace OrderImport;
 
 public class OrderImportService
 {
-    private static readonly List<Order> _importedOrders = new List<Order>();
-    private const string NotificationApiKey = "<cle-retiree>";
+    private readonly ISupplierNotifier _notifier;
 
-    public void Import(string filePath)
+    public OrderImportService(ISupplierNotifier notifier)
     {
-        Console.WriteLine($"Début de l'import : {filePath}");
+        _notifier = notifier;
+    }
 
-        var lines = File.ReadAllLines(filePath);
+    public async Task<ImportResult> ImportAsync(TextReader reader, CancellationToken cancellationToken = default)
+    {
+        var header = await reader.ReadLineAsync(cancellationToken);
+        if (!string.Equals(header?.Trim(), OrderLineParser.ExpectedHeader, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"En-tête CSV inattendu, attendu : {OrderLineParser.ExpectedHeader}");
 
-        for (int i = 1; i < lines.Length; i++)
+        var result = new ImportResult();
+        var importedReferences = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var lineNumber = 1;
+
+        while (await reader.ReadLineAsync(cancellationToken) is { } line)
         {
-            var parts = lines[i].Split(',');
-            string supplierId = parts[0];
-            string reference = parts[1];
-            decimal amount = decimal.Parse(parts[2]);
-            string status = parts[3];
+            lineNumber++;
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
 
-            _importedOrders.Add(new Order
+            // Une ligne en échec est rejetée, le reste du fichier continue d'être traité
+            try
             {
-                SupplierId = supplierId,
-                Reference = reference,
-                Amount = amount,
-                Status = status
-            });
-
-            Console.WriteLine($"Commande {reference} ajoutée pour {supplierId}.");
-
-            if (status == "URGENT")
+                await ImportLineAsync(line, lineNumber, result, importedReferences, cancellationToken);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                Console.WriteLine($"Commande {reference} marquée URGENT, notification en cours...");
-                NotifySupplier(supplierId, reference);
+                result.Rejected.Add(new RejectedLine(lineNumber, $"erreur inattendue ({ex.GetType().Name})"));
             }
         }
 
-        Console.WriteLine($"{_importedOrders.Count} commande(s) importée(s).");
+        return result;
     }
 
-    private void NotifySupplier(string supplierId, string reference)
+    private async Task ImportLineAsync(string line, int lineNumber, ImportResult result,
+        HashSet<string> importedReferences, CancellationToken cancellationToken)
     {
-        var client = new HttpClient();
-        var url = "https://api.notif-fournisseurs.fr/send?key=" + NotificationApiKey
-            + "&supplier=" + supplierId + "&ref=" + reference;
+        var parsed = OrderLineParser.Parse(line);
+        if (parsed.Order is null)
+        {
+            result.Rejected.Add(new RejectedLine(lineNumber, parsed.Error!));
+            return;
+        }
 
-        client.GetAsync(url);
+        var order = parsed.Order;
+        if (!importedReferences.Add(order.Reference))
+        {
+            result.Rejected.Add(new RejectedLine(lineNumber, $"référence {order.Reference} déjà importée"));
+            return;
+        }
+
+        result.Imported.Add(order);
+
+        if (order.Status == OrderStatus.Urgent)
+            await NotifyAsync(order, result, cancellationToken);
+    }
+
+    private async Task NotifyAsync(Order order, ImportResult result, CancellationToken cancellationToken)
+    {
+        // La commande reste importée même si la notification échoue : on la signale pour relance
+        try
+        {
+            await _notifier.NotifyUrgentOrderAsync(order, cancellationToken);
+        }
+        // Le timeout HttpClient lève aussi une TaskCanceledException, d'où le filtre sur le jeton
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            result.FailedNotifications.Add($"{order.Reference} ({ex.GetType().Name})");
+        }
     }
 }

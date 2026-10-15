@@ -1,9 +1,9 @@
 namespace OrderImport;
 
-public class Order
+public enum OrderStatus
 {
-    public string SupplierId { get; set; }
-    public string Reference { get; set; }
-    public decimal Amount { get; set; }
-    public string Status { get; set; }
+    Standard,
+    Urgent
 }
+
+public sealed record Order(string SupplierId, string Reference, decimal Amount, OrderStatus Status);
