@@ -28,7 +28,7 @@ Note : le dossier reçu contenait un fichier `Grille-notation-interne.md`. Il n'
 
 ## 4. Pour livrer en production demain, je changerais encore
 
-- **Secrets** : révoquer la clé actuelle, stocker la nouvelle dans un coffre (Key Vault…), pas en variable d'environnement en clair.
+- **Secrets** : révoquer la clé actuelle, stocker la nouvelle dans un coffre (Key Vault…), pas en variable d'environnement en clair. Preuve que le risque est réel : la protection de GitHub a bloqué le premier push, la clé étant encore présente dans le commit de l'état initial. Je l'ai masquée dans l'historique plutôt que d'autoriser sa publication, mais elle a circulé et reste à révoquer.
 - **Notifications fiables** : aujourd'hui une notification en échec est seulement signalée. Il faudrait un retry avec backoff (Polly) puis une file / outbox pour relancer, avec idempotence côté API.
 - **Persistance et doublons** : les commandes sont gardées en mémoire et les doublons ne sont détectés qu'à l'intérieur d'un même fichier. Il faut une base avec une contrainte d'unicité sur la référence.
 - **Parsing CSV** : utiliser CsvHelper (champs entre guillemets, séparateurs) et limiter la taille des fichiers acceptés.
