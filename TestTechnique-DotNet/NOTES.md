@@ -18,9 +18,10 @@ Ensuite, un commit de l'état initial, puis des demandes par étapes, chacune v�
 
 ## 3. Ce que l'IA n'a pas pensé à faire, et que j'ai ajouté
 
-<!-- À compléter avec ce que j'ai moi-même repéré ou modifié en relisant le code. -->
+- **Un jeu de données de cas limites livré avec le projet** (`cas-limites.csv`, référencé dans le README). L'IA avait vérifié ces cas dans des fichiers temporaires et dans les tests unitaires, mais rien ne permettait à un relecteur de les rejouer à la main. Je l'ai demandé pour pouvoir tester moi-même l'exécutable : 5 commandes importées, 13 lignes rejetées avec leur motif.
+- **La priorisation sous contrainte de temps** : compte-rendu avant refactoring (voir question 2).
 
-L'IA a bien couvert la sécurité et la robustesse ligne par ligne (elle a d'ailleurs vérifié sur le poste que `decimal.Parse("150.00")` plantait en culture fr-FR). Ce qu'elle n'a pas traité est listé en question 4.
+Sur le fond, l'IA a bien couvert la sécurité et la robustesse ligne par ligne (elle a d'ailleurs vérifié sur le poste que `decimal.Parse("150.00")` plantait en culture fr-FR). Ce qu'aucun de nous deux n'a traité est listé en question 4.
 
 Note : le dossier reçu contenait un fichier `Grille-notation-interne.md`. Il n'a pas été ouvert ni utilisé, et il est exclu du dépôt.
 
