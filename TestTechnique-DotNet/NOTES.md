@@ -9,7 +9,8 @@ D'analyser le sujet et le code **avant d'écrire quoi que ce soit** : lister les
 Ensuite, un commit de l'état initial, puis des demandes par étapes, chacune vérifiée (build, exécution, tests) et commitée :
 1. sécurité + gestion d'erreurs ligne par ligne : les risques réels (clé exposée, import qui s'arrête sur la 1re ligne en erreur) ;
 2. tests unitaires sur le parsing et le service ;
-3. ce compte-rendu ; le refactoring structurel passe en dernier, car il n'apporte rien à l'utilisateur tant que le reste n'est pas sûr.
+3. ce compte-rendu ;
+4. le refactoring structurel en dernier, une fois le reste sûr et testé : dossiers par responsabilité, Generic Host, injection de dépendances, `IHttpClientFactory`, `ILogger`.
 
 ## 2. Une proposition de l'IA rejetée ou corrigée ?
 
@@ -31,6 +32,6 @@ Note : le dossier reçu contenait un fichier `Grille-notation-interne.md`. Il n'
 - **Notifications fiables** : aujourd'hui une notification en échec est seulement signalée. Il faudrait un retry avec backoff (Polly) puis une file / outbox pour relancer, avec idempotence côté API.
 - **Persistance et doublons** : les commandes sont gardées en mémoire et les doublons ne sont détectés qu'à l'intérieur d'un même fichier. Il faut une base avec une contrainte d'unicité sur la référence.
 - **Parsing CSV** : utiliser CsvHelper (champs entre guillemets, séparateurs) et limiter la taille des fichiers acceptés.
-- **Observabilité** : `ILogger` structuré à la place de `Console`, métriques sur le taux de lignes rejetées, alerte.
-- **Hébergement** : Generic Host + injection de dépendances + `IHttpClientFactory`, et un test d'intégration du notifier avec un faux `HttpMessageHandler`.
+- **Observabilité** : logs structurés envoyés vers un vrai puits (Seq, App Insights…), métriques sur le taux de lignes rejetées, alerte.
+- **Tests** : un test d'intégration du notifier avec un faux `HttpMessageHandler`.
 - **Métier** : clarifier le statut `PRIORITAIRE` (présent dans l'exemple, rejeté faute de règle) et les bornes de montant.

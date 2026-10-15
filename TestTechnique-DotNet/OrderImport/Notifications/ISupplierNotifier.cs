@@ -1,4 +1,6 @@
-namespace OrderImport;
+using OrderImport.Domain;
+
+namespace OrderImport.Notifications;
 
 public interface ISupplierNotifier
 {

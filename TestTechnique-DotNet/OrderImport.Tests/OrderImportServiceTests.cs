@@ -1,3 +1,8 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using OrderImport.Domain;
+using OrderImport.Importing;
+using OrderImport.Notifications;
+
 namespace OrderImport.Tests;
 
 public class OrderImportServiceTests
@@ -7,7 +12,7 @@ public class OrderImportServiceTests
     private static Task<ImportResult> ImportAsync(ISupplierNotifier notifier, params string[] lines)
     {
         var csv = string.Join(Environment.NewLine, new[] { Header }.Concat(lines));
-        return new OrderImportService(notifier).ImportAsync(new StringReader(csv));
+        return new OrderImportService(notifier, NullLogger<OrderImportService>.Instance).ImportAsync(new StringReader(csv));
     }
 
     [Fact]
@@ -77,7 +82,7 @@ public class OrderImportServiceTests
     [Fact]
     public async Task Import_EnTeteInattendu_LeveUneErreur()
     {
-        var service = new OrderImportService(new RecordingNotifier());
+        var service = new OrderImportService(new RecordingNotifier(), NullLogger<OrderImportService>.Instance);
 
         await Assert.ThrowsAsync<InvalidDataException>(
             () => service.ImportAsync(new StringReader("Foo,Bar\nSUP-001,CMD-1001,10.00,STANDARD")));
@@ -86,7 +91,7 @@ public class OrderImportServiceTests
     [Fact]
     public async Task Import_FichierVide_LeveUneErreur()
     {
-        var service = new OrderImportService(new RecordingNotifier());
+        var service = new OrderImportService(new RecordingNotifier(), NullLogger<OrderImportService>.Instance);
 
         await Assert.ThrowsAsync<InvalidDataException>(() => service.ImportAsync(new StringReader("")));
     }
@@ -94,7 +99,7 @@ public class OrderImportServiceTests
     [Fact]
     public async Task Import_Annule_PropageLAnnulation()
     {
-        var service = new OrderImportService(new RecordingNotifier());
+        var service = new OrderImportService(new RecordingNotifier(), NullLogger<OrderImportService>.Instance);
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 

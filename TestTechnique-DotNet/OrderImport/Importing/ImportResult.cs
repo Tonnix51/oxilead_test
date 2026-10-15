@@ -1,4 +1,6 @@
-namespace OrderImport;
+using OrderImport.Domain;
+
+namespace OrderImport.Importing;
 
 public sealed record RejectedLine(int LineNumber, string Reason);
 

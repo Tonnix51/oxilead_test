@@ -1,4 +1,4 @@
-namespace OrderImport;
+namespace OrderImport.Domain;
 
 public enum OrderStatus
 {

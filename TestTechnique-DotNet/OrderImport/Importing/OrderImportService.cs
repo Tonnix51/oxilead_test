@@ -1,12 +1,19 @@
-namespace OrderImport;
+using Microsoft.Extensions.Logging;
+using OrderImport.Domain;
+using OrderImport.Notifications;
+using OrderImport.Parsing;
+
+namespace OrderImport.Importing;
 
 public class OrderImportService
 {
     private readonly ISupplierNotifier _notifier;
+    private readonly ILogger<OrderImportService> _logger;
 
-    public OrderImportService(ISupplierNotifier notifier)
+    public OrderImportService(ISupplierNotifier notifier, ILogger<OrderImportService> logger)
     {
         _notifier = notifier;
+        _logger = logger;
     }
 
     public async Task<ImportResult> ImportAsync(TextReader reader, CancellationToken cancellationToken = default)
@@ -32,6 +39,7 @@ public class OrderImportService
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
+                _logger.LogError(ex, "Erreur inattendue sur la ligne {LineNumber}", lineNumber);
                 result.Rejected.Add(new RejectedLine(lineNumber, $"erreur inattendue ({ex.GetType().Name})"));
             }
         }
@@ -72,6 +80,7 @@ public class OrderImportService
         // Le timeout HttpClient lève aussi une TaskCanceledException, d'où le filtre sur le jeton
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
+            _logger.LogWarning(ex, "Notification en échec pour la commande {Reference}", order.Reference);
             result.FailedNotifications.Add($"{order.Reference} ({ex.GetType().Name})");
         }
     }

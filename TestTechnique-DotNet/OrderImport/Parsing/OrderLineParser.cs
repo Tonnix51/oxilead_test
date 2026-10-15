@@ -1,7 +1,8 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using OrderImport.Domain;
 
-namespace OrderImport;
+namespace OrderImport.Parsing;
 
 public sealed record ParseResult(Order? Order, string? Error)
 {

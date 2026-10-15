@@ -25,4 +25,6 @@ dotnet test OrderImport.sln
 - `OrderLineParser` : transforme une ligne en `Order` ou en motif de rejet. Aucune exception pour les cas attendus, validation stricte des identifiants (ils partent vers l'API et dans les logs), montant en culture invariante.
 - `OrderImportService` : lit le fichier en flux, ligne par ligne. Une ligne invalide, en double ou qui provoque une erreur imprévue est rejetée avec son numéro, le reste continue. Retourne un `ImportResult` au lieu d'écrire dans une liste statique.
 - `ISupplierNotifier` : abstraction de la notification, ce qui permet de tester le service sans appel réseau. `HttpSupplierNotifier` envoie la clé en en-tête et les données en JSON. Un échec de notification n'annule pas l'import de la commande, il est remonté dans le résultat.
-- `Program` : assemble le tout, lit la configuration et affiche le récapitulatif.
+- `Program` : Generic Host pour l'injection de dépendances, la configuration et les logs. `HttpSupplierNotifier` est un client typé (`IHttpClientFactory`) ; sans clé, c'est `DisabledSupplierNotifier` qui est enregistré. Le récapitulatif de l'import est affiché en console, les erreurs techniques passent par `ILogger`.
+
+Organisation : `Domain/` (modèle), `Parsing/` (lecture d'une ligne), `Importing/` (orchestration et résultat), `Notifications/` (envoi aux fournisseurs).

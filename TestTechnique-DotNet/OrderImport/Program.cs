@@ -1,3 +1,9 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using OrderImport.Importing;
+using OrderImport.Notifications;
+
 namespace OrderImport;
 
 internal static class Program
@@ -14,15 +20,15 @@ internal static class Program
             return 1;
         }
 
+        using var host = BuildHost();
+        var service = host.Services.GetRequiredService<OrderImportService>();
+
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
             cts.Cancel();
         };
-
-        using var httpClient = new HttpClient { BaseAddress = NotificationApiUrl, Timeout = TimeSpan.FromSeconds(10) };
-        var service = new OrderImportService(CreateNotifier(httpClient));
 
         Console.WriteLine($"Début de l'import : {filePath}");
         try
@@ -44,17 +50,33 @@ internal static class Program
         }
     }
 
-    private static ISupplierNotifier CreateNotifier(HttpClient httpClient)
+    private static IHost BuildHost()
     {
-        // La clé n'est plus dans le code : elle vient de l'environnement (ou d'un coffre de secrets en prod)
-        var apiKey = Environment.GetEnvironmentVariable(ApiKeyVariable);
+        // Pas d'args transmis au builder : le chemin du fichier n'est pas une clé de configuration
+        var builder = Host.CreateApplicationBuilder();
+        builder.Logging.ClearProviders();
+        builder.Logging.AddSimpleConsole(options => options.SingleLine = true);
+
+        // La clé vient de la configuration (variables d'environnement, ou coffre de secrets en prod)
+        var apiKey = builder.Configuration[ApiKeyVariable];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            Console.WriteLine($"{ApiKeyVariable} non définie : notifications désactivées.");
-            return new DisabledSupplierNotifier();
+            builder.Services.AddSingleton<ISupplierNotifier, DisabledSupplierNotifier>();
+        }
+        else
+        {
+            builder.Services.AddHttpClient<ISupplierNotifier, HttpSupplierNotifier>(client =>
+            {
+                client.BaseAddress = NotificationApiUrl;
+                client.Timeout = TimeSpan.FromSeconds(10);
+                // Clé dans un en-tête et non dans l'URL : les URL finissent dans les logs des proxys et serveurs
+                client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+            });
         }
 
-        return new HttpSupplierNotifier(httpClient, apiKey);
+        builder.Services.AddTransient<OrderImportService>();
+
+        return builder.Build();
     }
 
     private static void PrintSummary(ImportResult result)
