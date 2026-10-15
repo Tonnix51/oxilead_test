@@ -7,6 +7,7 @@ Import de commandes fournisseurs depuis un fichier CSV (.NET 8).
 ```bash
 dotnet run                                   # importe sample-orders.csv
 dotnet run -- chemin/vers/mon-fichier.csv
+dotnet run -- cas-limites.csv                # doublons, montants, statuts, colonnes, identifiants invalides
 ```
 
 La clé de l'API de notification est lue dans la variable d'environnement `NOTIF_API_KEY`. Sans elle, l'import fonctionne mais les commandes URGENT ne sont pas notifiées.
